@@ -1,0 +1,6 @@
+h2. Couchitter
+
+h3. Description
+
+Couchitter is a distributed twitter clone with couchdb.
+
