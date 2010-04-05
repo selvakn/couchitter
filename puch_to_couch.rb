@@ -26,15 +26,9 @@ def existing_design_doc
   @existing_design_doc = response["_rev"]
 end
 
-def json_to_push(files)
-  json = {
-    "_id" => "_design/couchitter",
-    "_attachments" => {}
-  }
-  
-  json["_rev"] = existing_design_doc if existing_design_doc
-  
-  files.inject(json) do |hash, file_info|
+def json_to_push(attachments, views)
+  json =   
+  attachments.inject( { "_id" => "_design/couchitter", "_attachments" => {} } ) do |hash, file_info|
     file_path = file_info[0]
     file_name = File.basename file_path
     content_type = file_info[1]
@@ -46,15 +40,29 @@ def json_to_push(files)
     
     hash
   end
+  
+  json["_rev"] = existing_design_doc if existing_design_doc
+  json["views"] = YAML.load_file(views)
+  json
 end
 
-def push_attachments(files)
-  response = get_json_from_output_of(%Q{curl -X "PUT" -d '#{json_to_push(files).to_json}' '#{database_string}/_design/couchitter'})
+def push_design_doc(options)
+  attachments = options[:attachments]
+  views = options[:views]
+  response = get_json_from_output_of(%Q{curl -X "PUT" -d '#{json_to_push(attachments, views).to_json}' '#{database_string}/_design/couchitter'})
   puts response.inspect
 end
 
-push_attachments [["javascripts/jquery.js", "text/javascript"],
-                  ["javascripts/jcouchquery.js", "text/javascript"],
-                  ["javascripts/couchitter.js", "text/javascript"],
-                  ["stylesheets/couchitter.css", "text/javascript"],
-                  ["index.html", "text/html"]]
+def create_database
+  response = get_json_from_output_of(%Q{curl -X "PUT" '#{database_string}'})
+  puts response.inspect
+end
+
+create_database
+push_design_doc({
+  :attachments => [["javascripts/jquery.js", "text/javascript"], ["javascripts/jcouchquery.js", "text/javascript"],
+                   ["javascripts/couchitter.js", "text/javascript"], ["stylesheets/couchitter.css", "text/javascript"],
+                    ["index.html", "text/html"]],
+  :views => "views.yaml"
+})
+                  
