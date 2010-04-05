@@ -1,0 +1,11 @@
+* {font-weight:normal;}
+
+div {
+  padding:5px 0;
+}
+
+form#login_form label {width: 80px; float:left;}
+
+form#login_form input[type=submit] {float:left;}
+
+#login_form #error_message { float:left; margin-top:-5px; padding-left:10px; }

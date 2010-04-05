@@ -1,18 +1,37 @@
 <html>
-	<head>
-		<link type="text/css" rel="stylesheet" href="couchitter.css" />
-		
-		<script src="jquery.js"></script>
-		<script src="jcouchquery.js"></script>
-		<script src="couchitter.js"></script>
-		
-	</head>
-	<body>
-		<div id="top">
-			
+<head>
+	<link type="text/css" rel="stylesheet" href="couchitter.css" />
+
+	<script src="jquery.js"></script>
+	<script src="jcouchquery.js"></script>
+	<script src="couchitter.js"></script>
+
+</head>
+<body>
+	<div id="top">
+		<div id="login">
+			<form action="#" id="login_form">
+				<div>
+					<label for="username">Username: </label>
+					<input id="username" type="text" name="username" />
+				</div>
+				<div>
+					<label for="password">Password: </label>
+					<input id="password" type="password" name="password" />
+				</div>
+				<div>
+					<input id="login_submit" type="submit" value="Login" />
+					<div id="error_message"></div>
+				</div>
+			</form>
 		</div>
-		<div id="main">
+	</div>
+	<div id="main">
+		<textarea rows="4" cols="100" id="happening_message"></textarea>
+		<input type="button" value="Coucheet" id="coucheet"/>
+		<ul id="coucheets">
 			
-		</div>
-	</body>
+		</ul>
+	</div>
+</body>
 </html>

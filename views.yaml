@@ -1,0 +1,2 @@
+"byUser":
+  "map" : "function(doc){ if(doc.type == \"Coucheet\" ){ emit(doc.user, doc)}}"
