@@ -33,7 +33,7 @@ $(document).ready(function(){
     $.jcouch.login(
       $("#username").attr("value"),
       $("#password").attr("value"), 
-      afterLogin,ich
+      afterLogin,
       function(){
         var error_message = $("#login_form #error_message")
         error_message.text("Your are not authorized!!");
@@ -60,7 +60,7 @@ $(document).ready(function(){
             type : "Coucheet",
             value : $("#happening_message").attr("value"),
             user : loggedInUser,
-            createdAt : new Date()
+            createdAt : new Date().toString()
           },
           path : uuid
         },
