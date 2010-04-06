@@ -5,9 +5,10 @@ require 'yaml'
 require 'base64'
 
 yaml_date = YAML.load_file(".couchitter.yaml") || {}
-@username, @password = yaml_date["username"], yaml_date["password"]
-@host = yaml_date["host"] || "127.0.0.1"
-@port = yaml_date["port"] || "5984"
+@host = ARGV[0] || yaml_date["host"] || "127.0.0.1"
+@username = ARGV[1] || yaml_date["username"]
+@password = ARGV[2] || yaml_date["password"]
+@port = ARGV[3] || yaml_date["port"] || "5984"
 
 def get_json_from_output_of(command)
   response = `#{command}`
