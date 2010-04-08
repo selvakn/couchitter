@@ -16,7 +16,7 @@
         },
         type : "POST",
         success : callback,
-        error : failure_callback,
+        error : failure_callback
       });
     },
     

@@ -1,0 +1,1 @@
+"byUser": "function(doc, req) { if (doc.user == req.query.name){return true;} return false; }"

@@ -27,7 +27,7 @@ def existing_design_doc
   @existing_design_doc = response["_rev"]
 end
 
-def json_to_push(attachments, views)
+def json_to_push(attachments, views, filters)
   json =   
   attachments.inject( { "_id" => "_design/couchitter", "_attachments" => {} } ) do |hash, file_info|
     file_path = file_info[0]
@@ -44,13 +44,17 @@ def json_to_push(attachments, views)
   
   json["_rev"] = existing_design_doc if existing_design_doc
   json["views"] = YAML.load_file(views)
+  json["filters"] = YAML.load_file(filters)
   json
 end
 
 def push_design_doc(options)
   attachments = options[:attachments]
   views = options[:views]
-  response = get_json_from_output_of(%Q{curl -X "PUT" -d '#{json_to_push(attachments, views).to_json}' '#{database_string}/_design/couchitter'})
+  filters = options[:filters]
+  content_to_push = json_to_push(attachments, views, filters)
+  
+  response = get_json_from_output_of(%Q{curl -X "PUT" -d '#{content_to_push.to_json}' '#{database_string}/_design/couchitter'})
   puts response.inspect
 end
 
@@ -64,6 +68,6 @@ push_design_doc({
   :attachments => [["javascripts/jquery.js", "text/javascript"], ["javascripts/jcouchquery.js", "text/javascript"],
                    ["javascripts/couchitter.js", "text/javascript"], ["stylesheets/couchitter.css", "text/javascript"],
                     ["index.html", "text/html"]],
-  :views => "views.yaml"
+  :views => "views.yml",
+  :filters => "filters.yml"
 })
-                  
