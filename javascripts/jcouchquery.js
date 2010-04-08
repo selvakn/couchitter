@@ -74,6 +74,31 @@
       });
     },
     
+    
+    // TODO : Cleanup duplication b/w postDocument and putDocument / replicate
+    
+    replicate : function(data, callback, failure_callback){
+      jQuery.ajax({
+        url : "/_replicate",
+        data : JSON.stringify(data),
+        type : "POST",
+        dataType : "json",
+        success : callback,
+        error : failure_callback
+      });
+    },
+    
+    changes : function(data, callback, failure_callback){
+      jQuery.ajax({
+        url : "/_changes",
+        data : data,
+        type : "GET",
+        dataType : "json",
+        success : callback,
+        error : failure_callback
+      });
+    }
+    
     _constructUrl : function(){
         var str = this.couchDatabase.connectionString();
         $(arguments).each(function(index, arg){

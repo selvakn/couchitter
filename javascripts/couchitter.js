@@ -2,6 +2,26 @@ $(document).ready(function(){
   var Couchitter = {
     loggedInUser: null,
     
+    _docTypes : {
+      coucheet : "Coucheet",
+      followee : "Followee"
+    },
+    
+    _constructData : function(message, type, uuid){
+      return {
+        data: { type : type, value : message, user : Couchitter.loggedInUser, createdAt : new Date().toString() },
+        path : uuid
+      }
+    },
+    
+    _constructCoucheetData : function(message, uuid) {
+      return this._constructData(message, this._docTypes.coucheet, uuid);
+    },
+    
+    _constructFolloweeDate : function(followee, uuid){
+      return this._constructData(followee, this._docTypes.followee, uuid);
+    },
+    
     login : function(username, password){
       $.jcouch.login( $("#username").attr("value"), $("#password").attr("value"), Couchitter.afterLogin, Couchitter.handleFailureLogin);
     },
@@ -13,16 +33,17 @@ $(document).ready(function(){
       setTimeout(function(){ error_message.fadeOut( function(){ $("#unauthorized_message").text(""); }); }, 3000);
     },
     
+    sortByCreatedAt : function(data){
+      return data.sort(function(a,b){
+        return(new Date(b.value.createdAt) - new Date(a.value.createdAt));
+      });
+    },
+    
     showCoucheets : function(coucheets){
         var list_html = "";
-        
-        var sortedByDate = coucheets.sort(function(a,b){
-          return(new Date(b.value.createdAt) - new Date(a.value.createdAt));
-        });
-
-        $(sortedByDate).each(function(index, coucheet){
+        $(Couchitter.sortByCreatedAt(coucheets)).each(function(index, coucheet){
           var date = new Date(coucheet.value.createdAt);
-          list_html += "<li>" + coucheet.value.value + " - " + date.toLocaleDateString() + " " + date.toLocaleTimeString()  + "</li>";
+          list_html += "<li><b>" + coucheet.value.user + ":</b> " + coucheet.value.value + " - " + date.toLocaleDateString() + " " + date.toLocaleTimeString()  + "</li>";
         });
         
         $("#coucheets").html(list_html);
@@ -33,16 +54,30 @@ $(document).ready(function(){
     },
     
     refreshMyCoucheets : function(){
-      $.jcouch.getDocument({path : "_design/couchitter/_view/byUser?key=\""+ Couchitter.loggedInUser + "\""}, 
+      $.jcouch.getDocument({path : "_design/couchitter/_view/byDocType?key=\"" + Couchitter._docTypes.coucheet + "\""}, 
       function(data){
         Couchitter.showCoucheets(data.rows)
       });
     },
     
+    refreshMyFollowees : function(){
+      $.jcouch.getDocument({path : "_design/couchitter/_view/byDocType?key=\"" + Couchitter._docTypes.followee +"\""}, 
+      function(data){
+        var followees = Couchitter.sortByCreatedAt(data.rows);
+        var list_html = "";
+        $(followees).each(function(index, followee){
+          list_html += "<li>" + followee.value.value + "</li>"
+        });
+        $("#followees").html(list_html);
+      });
+    },
+    
     afterLogin : function(){
       $.jcouch.getLoggedInUser(function(name){
-        Couchitter.loggedInUser = name;
+        Couchitter.loggedInUser = window.location.hostname;
         $("#login").fadeOut(function(){ $("#login").html("Welcome " + name + " !!"); $("#login").fadeIn(); });
+        Couchitter.refreshMyFollowees();
+        Couchitter.updateMyReplications();
         Couchitter.refreshMyCoucheets();
       });
     },
@@ -64,13 +99,39 @@ $(document).ready(function(){
       });
     },
     
-    _constructCoucheetData : function(message, uuid) {
-      return {
-        data: { type : "Coucheet", value : message, user : Couchitter.loggedInUser, createdAt : new Date().toString() },
-        path : uuid
-      }
+    follow : function(database_url){
+      Couchitter.ensureLoggedIn(function(){
+        Couchitter.addToMyFollowee(database_url);
+        Couchitter.updateMyReplications();
+        Couchitter.refreshMyCoucheets();
+      });
     },
     
+    addToMyFollowee : function(database_url){
+      $.jcouch.getUUID(function(uuid){
+        $.jcouch.putDocument(Couchitter._constructFolloweeDate(database_url, uuid), Couchitter.refreshMyFollowees, Couchitter.showPleaseLoginMessage);
+      });
+    },
+    
+    updateMyReplications : function(){
+      $.jcouch.getDocument({path : "_design/couchitter/_view/byDocType?key=\"" + Couchitter._docTypes.followee +"\""},
+      function(data){
+        var followees = $.map(data.rows, function(followee_doc, i){ return followee_doc.value;});
+        $(followees).each(function(index, followee){ Couchitter._replicateFrom(followee); });
+      });
+    },
+    
+    _replicateFrom : function(followee){
+      $.jcouch.replicate({
+        "source":"http://" + followee.value + ":5984/couchitter",
+        "target": "couchitter", 
+        "continuous":true, 
+        "filter" : "couchitter/byUser", 
+        "query_params" : {
+          "name": followee.value
+        }
+      });
+    },
     
     init : function(){
       $.jcouch.init({db : "couchitter"});
@@ -84,9 +145,12 @@ $(document).ready(function(){
           Couchitter.pushCoucheet($("#happening_message").attr("value"));
       });
       
+      $("#follow").click(function(){
+        Couchitter.follow($("#follow_username").attr("value"));
+      });
+      
       this.afterLogin();
     }
-    
     
   }
   
