@@ -40,23 +40,41 @@ $(document).ready(function(){
     },
     
     showCoucheets : function(coucheets){
-        var list_html = "";
         $(Couchitter.sortByCreatedAt(coucheets)).each(function(index, coucheet){
-          var date = new Date(coucheet.value.createdAt);
-          list_html += "<li><b>" + coucheet.value.user + ":</b> " + coucheet.value.value + " - " + date.toLocaleDateString() + " " + date.toLocaleTimeString()  + "</li>";
+          Couchitter.showCoucheet(coucheet);
         });
-        
-        $("#coucheets").html(list_html);
+    },
+    
+    showCoucheet : function(coucheet){
+      var date = new Date(coucheet.value.createdAt);
+      $("#coucheets").prepend("<li><b>" + coucheet.value.user + ":</b> " + coucheet.value.value + " - " + date.toLocaleDateString() + " " + date.toLocaleTimeString()  + "</li>");
     },
     
     showPleaseLoginMessage : function(){
       alert("Please login to do this.");
     },
     
-    refreshMyCoucheets : function(){
-      $.jcouch.getDocument({path : "_design/couchitter/_view/byDocType?key=\"" + Couchitter._docTypes.coucheet + "\""}, 
+    // refreshMyCoucheets : function(){
+    //   $.jcouch.getDocument({path : "_design/couchitter/_view/byDocType?key=\"" + Couchitter._docTypes.coucheet + "\""}, 
+    //   function(data){
+    //     Couchitter.showCoucheets(data.rows)
+    //   });
+    // },
+
+    refreshMyCoucheets : function(since){
+      console.log("refere");
+      $.jcouch.changes({
+        since : since,
+        type : Couchitter._docTypes.coucheet,
+        filter : "couchitter/byDocType"
+      },
       function(data){
-        Couchitter.showCoucheets(data.rows)
+        var next_since = data.last_seq;
+        $(data.results).each(function(seq){
+          $.jcouch.getDocument({path : seq.id}, function(data){
+            console.log(data);
+          });
+        });
       });
     },
     
@@ -78,7 +96,9 @@ $(document).ready(function(){
         $("#login").fadeOut(function(){ $("#login").html("Welcome " + name + " !!"); $("#login").fadeIn(); });
         Couchitter.refreshMyFollowees();
         Couchitter.updateMyReplications();
-        Couchitter.refreshMyCoucheets();
+        console.log("test");
+        
+        Couchitter.refreshMyCoucheets(1);
       });
     },
     
@@ -94,7 +114,8 @@ $(document).ready(function(){
     pushCoucheet : function(message){
       Couchitter.ensureLoggedIn(function(){
         $.jcouch.getUUID(function(uuid){
-          $.jcouch.putDocument(Couchitter._constructCoucheetData(message, uuid), Couchitter.refreshMyCoucheets, Couchitter.showPleaseLoginMessage);
+          // $.jcouch.putDocument(Couchitter._constructCoucheetData(message, uuid), Couchitter.refreshMyCoucheets, Couchitter.showPleaseLoginMessage);
+          $.jcouch.putDocument(Couchitter._constructCoucheetData(message, uuid));
         });
       });
     },
@@ -103,7 +124,7 @@ $(document).ready(function(){
       Couchitter.ensureLoggedIn(function(){
         Couchitter.addToMyFollowee(database_url);
         Couchitter.updateMyReplications();
-        Couchitter.refreshMyCoucheets();
+        // Couchitter.refreshMyCoucheets();
       });
     },
     

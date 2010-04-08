@@ -90,10 +90,11 @@
     
     changes : function(data, callback, failure_callback){
       jQuery.ajax({
-        url : "/_changes",
+        url : this._constructUrl("_changes"),
         data : data,
         type : "GET",
         dataType : "json",
+        cache : false,
         success : callback,
         error : failure_callback
       });
