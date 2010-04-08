@@ -97,7 +97,7 @@
         success : callback,
         error : failure_callback
       });
-    }
+    },
     
     _constructUrl : function(){
         var str = this.couchDatabase.connectionString();
