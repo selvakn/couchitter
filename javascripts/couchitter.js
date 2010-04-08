@@ -1,66 +1,95 @@
 $(document).ready(function(){
-  var loggedInUser = null;
-
-  var refreshMyCoucheets = function(){
-    $.jcouch.getDocument({path:"_design/couchitter/_view/byUser?key=\"admin\""},
-    function(data){
-      var list_html = "";
-      sortedByDate = data.rows.sort(function(a,b){
-        return(new Date(b.value.createdAt) - new Date(a.value.createdAt));
-      });
-
-      $(sortedByDate).each(function(index, coucheet){
-        date = new Date(coucheet.value.createdAt);
-        list_html += "<li>" + coucheet.value.value + " - " + date.toLocaleDateString() + " " + date.toLocaleTimeString()  + "</li>";
-      });
-      $("#coucheets").html(list_html);
-    })
-  }
-
-  var afterLogin = function(){
-    $.jcouch.getLoggedInUser(function(name){
-      loggedInUser = name;
-      $("#login").fadeOut(function(){
-        $("#login").html("Welcome " + name + " !!");
-        $("#login").fadeIn();
-      });
-
-      refreshMyCoucheets();
-    });
-  }
-
-  $("#login_form").submit(function(){
-    var handle_failure_login = function() {
-      var error_message = $("#login_form #error_message")
+  var Couchitter = {
+    loggedInUser: null,
+    
+    login : function(username, password){
+      $.jcouch.login( $("#username").attr("value"), $("#password").attr("value"), Couchitter.afterLogin, Couchitter.handleFailureLogin);
+    },
+    
+    handleFailureLogin : function() {
+      var error_message = $("#login_form #error_message");
       error_message.text("Your are not authorized!!");
       error_message.show();
       setTimeout(function(){ error_message.fadeOut( function(){ $("#unauthorized_message").text(""); }); }, 3000);
-    }
+    },
+    
+    showCoucheets : function(coucheets){
+        var list_html = "";
+        
+        var sortedByDate = coucheets.sort(function(a,b){
+          return(new Date(b.value.createdAt) - new Date(a.value.createdAt));
+        });
 
-    $.jcouch.login( $("#username").attr("value"), $("#password").attr("value"), afterLogin, handle_failure_login);
-    return false;
-  });
-
-  var showPleaseLoginMessage = function(){
-    alert("Please login to do this.")
-  };
-
-  $("#coucheet").click(function(){
-    if(loggedInUser === null) { return showPleaseLoginMessage();}
-
-    var data_to_push = function(uuid) {
+        $(sortedByDate).each(function(index, coucheet){
+          var date = new Date(coucheet.value.createdAt);
+          list_html += "<li>" + coucheet.value.value + " - " + date.toLocaleDateString() + " " + date.toLocaleTimeString()  + "</li>";
+        });
+        
+        $("#coucheets").html(list_html);
+    },
+    
+    showPleaseLoginMessage : function(){
+      alert("Please login to do this.");
+    },
+    
+    refreshMyCoucheets : function(){
+      $.jcouch.getDocument({path : "_design/couchitter/_view/byUser?key=\""+ Couchitter.loggedInUser + "\""}, 
+      function(data){
+        Couchitter.showCoucheets(data.rows)
+      });
+    },
+    
+    afterLogin : function(){
+      $.jcouch.getLoggedInUser(function(name){
+        Couchitter.loggedInUser = name;
+        $("#login").fadeOut(function(){ $("#login").html("Welcome " + name + " !!"); $("#login").fadeIn(); });
+        Couchitter.refreshMyCoucheets();
+      });
+    },
+    
+    ensureLoggedIn : function(){
+      if(null === Couchitter.loggedInUser){
+        Couchitter.showPleaseLoginMessage();
+      }else{
+        var args = $.makeArray(arguments);
+        args.shift().apply(this, args);
+      }
+    },
+    
+    pushCoucheet : function(message){
+      Couchitter.ensureLoggedIn(function(){
+        $.jcouch.getUUID(function(uuid){
+          $.jcouch.putDocument(Couchitter._constructCoucheetData(message, uuid), Couchitter.refreshMyCoucheets, Couchitter.showPleaseLoginMessage);
+        });
+      });
+    },
+    
+    _constructCoucheetData : function(message, uuid) {
       return {
-        data: { type : "Coucheet", value : $("#happening_message").attr("value"), user : loggedInUser, createdAt : new Date().toString() },
+        data: { type : "Coucheet", value : message, user : Couchitter.loggedInUser, createdAt : new Date().toString() },
         path : uuid
       }
+    },
+    
+    
+    init : function(){
+      $.jcouch.init({db : "couchitter"});
+      
+      $("#login_form").submit(function(){
+        Couchitter.login();
+        return false;
+      });
+      
+      $("#coucheet").click(function(){
+          Couchitter.pushCoucheet($("#happening_message").attr("value"));
+      });
+      
+      this.afterLogin();
     }
-
-    $.jcouch.getUUID(function(uuid){
-      $.jcouch.putDocument(data_to_push(uuid), refreshMyCoucheets, showPleaseLoginMessage);
-    });
-  });
-
-  $.jcouch.init({db : "couchitter"});
-
-  afterLogin();
+    
+    
+  }
+  
+  Couchitter.init();
+  
 });
